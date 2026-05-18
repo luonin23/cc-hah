@@ -56,6 +56,12 @@ class WebSocketManager {
     ws.onopen = () => {
       conn.reconnectAttempt = 0
       this.startPingLoop(sessionId)
+      // Notify frontend of reconnection
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ws-state-change', {
+          detail: { sessionId, state: 'connected' }
+        }))
+      }
       while (conn.pendingMessages.length > 0) {
         const msg = conn.pendingMessages.shift()!
         ws.send(JSON.stringify(msg))
@@ -80,6 +86,12 @@ class WebSocketManager {
 
     ws.onclose = () => {
       this.stopPingLoop(sessionId)
+      // Notify frontend of disconnection via custom event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ws-state-change', {
+          detail: { sessionId, state: conn.intentionalClose ? 'disconnected' : 'reconnecting' }
+        }))
+      }
       if (!conn.intentionalClose && this.connections.get(sessionId) === conn) {
         this.scheduleReconnect(sessionId, conn)
       }

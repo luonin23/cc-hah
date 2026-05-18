@@ -129,18 +129,35 @@ const AGENT_COMPLETION_NOTIFICATION_PREVIEW_CHARS = 160
 let msgCounter = 0
 const nextId = () => `msg-${++msgCounter}-${Date.now()}`
 
-// Streaming throttle for content_delta
-let pendingDelta = ''
-let flushTimer: ReturnType<typeof setTimeout> | null = null
+// Streaming throttle for content_delta — per-session to avoid cross-session interference
+const sessionDeltas = new Map<string, {
+  pendingDelta: string
+  flushTimer: ReturnType<typeof setTimeout> | null
+}>()
 
-function consumePendingDelta(): string {
-  if (flushTimer) {
-    clearTimeout(flushTimer)
-    flushTimer = null
+function getOrCreateDeltaState(sessionId: string) {
+  let state = sessionDeltas.get(sessionId)
+  if (!state) {
+    state = { pendingDelta: '', flushTimer: null }
+    sessionDeltas.set(sessionId, state)
   }
-  const text = pendingDelta
-  pendingDelta = ''
+  return state
+}
+
+function consumePendingDelta(sessionId: string): string {
+  const state = sessionDeltas.get(sessionId)
+  if (!state) return ''
+  if (state.flushTimer) {
+    clearTimeout(state.flushTimer)
+    state.flushTimer = null
+  }
+  const text = state.pendingDelta
+  state.pendingDelta = ''
   return text
+}
+
+function clearDeltaState(sessionId: string) {
+  sessionDeltas.delete(sessionId)
 }
 
 function appendAssistantTextMessage(
@@ -257,6 +274,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       get().handleServerMessage(sessionId, msg)
     })
 
+    // Listen for WebSocket connection state changes
+    const handleWsStateChange = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { sessionId: string; state: string }
+      if (detail.sessionId === sessionId) {
+        set((s) => ({ sessions: updateSessionIn(s.sessions, sessionId, () => ({ connectionState: detail.state as ConnectionState })) }))
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ws-state-change', handleWsStateChange)
+    }
+    // Store cleanup ref on the session object so disconnectSession can remove it
+
+
     const runtimeSelection = useSessionRuntimeStore.getState().selections[sessionId]
     if (runtimeSelection) {
       wsManager.send(sessionId, { type: 'set_runtime_config', ...runtimeSelection })
@@ -282,10 +312,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   disconnectSession: (sessionId) => {
     const session = get().sessions[sessionId]
     if (session?.elapsedTimer) clearInterval(session.elapsedTimer)
-    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null }
-    if (pendingDelta) {
-      const text = consumePendingDelta()
-      set((s) => ({ sessions: updateSessionIn(s.sessions, sessionId, (sess) => ({ streamingText: sess.streamingText + text })) }))
+    {
+      const deltaState = sessionDeltas.get(sessionId)
+      if (deltaState?.flushTimer) { clearTimeout(deltaState.flushTimer); deltaState.flushTimer = null }
+      if (deltaState?.pendingDelta) {
+        const text = deltaState.pendingDelta
+        deltaState.pendingDelta = ''
+        set((s) => ({ sessions: updateSessionIn(s.sessions, sessionId, (sess) => ({ streamingText: sess.streamingText + text })) }))
+      }
+      clearDeltaState(sessionId)
     }
     wsManager.disconnect(sessionId)
     set((s) => {
@@ -327,11 +362,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     set((s) => {
       const session = s.sessions[sessionId] ?? createDefaultSessionState()
-      if (flushTimer) {
-        clearTimeout(flushTimer)
-        flushTimer = null
+      {
+        const deltaState = getOrCreateDeltaState(sessionId)
+        if (deltaState.flushTimer) {
+          clearTimeout(deltaState.flushTimer)
+          deltaState.flushTimer = null
+        }
       }
-      const bufferedDelta = consumePendingDelta()
+      const bufferedDelta = consumePendingDelta(sessionId)
       const pendingAssistantText = `${session.streamingText}${bufferedDelta}`
 
       const newMessages = pendingAssistantText.trim()
@@ -444,10 +482,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   stopGeneration: (sessionId) => {
     wsManager.send(sessionId, { type: 'stop_generation' })
-    if (flushTimer) { clearTimeout(flushTimer); flushTimer = null }
-    if (pendingDelta) {
-      const text = consumePendingDelta()
-      set((s) => ({ sessions: updateSessionIn(s.sessions, sessionId, (sess) => ({ streamingText: sess.streamingText + text })) }))
+    {
+      const deltaState = sessionDeltas.get(sessionId)
+      if (deltaState?.flushTimer) { clearTimeout(deltaState.flushTimer); deltaState.flushTimer = null }
+      if (deltaState?.pendingDelta) {
+        const text = deltaState.pendingDelta
+        deltaState.pendingDelta = ''
+        set((s) => ({ sessions: updateSessionIn(s.sessions, sessionId, (sess) => ({ streamingText: sess.streamingText + text })) }))
+      }
     }
     set((s) => {
       const session = s.sessions[sessionId]
@@ -569,7 +611,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       case 'status':
         update((session) => {
-          const pendingText = `${session.streamingText}${consumePendingDelta()}`
+          const pendingText = `${session.streamingText}${consumePendingDelta(sessionId)}`
           const hasPendingStreamText =
             session.chatState === 'streaming' && pendingText.trim().length > 0
           // Background task progress can arrive while the assistant is still
@@ -603,7 +645,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       case 'content_start': {
         const session = get().sessions[sessionId]
         if (!session) break
-        const pendingText = `${session.streamingText}${consumePendingDelta()}`
+        const pendingText = `${session.streamingText}${consumePendingDelta(sessionId)}`
         if (msg.blockType !== 'text' && pendingText.trim()) {
           update((s) => ({
             messages: appendAssistantTextMessage(s.messages, pendingText, Date.now()),
@@ -630,12 +672,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       case 'content_delta':
         if (msg.text !== undefined) {
-          pendingDelta += msg.text
-          if (!flushTimer) {
-            flushTimer = setTimeout(() => {
-              const text = pendingDelta
-              pendingDelta = ''
-              flushTimer = null
+          const deltaState = getOrCreateDeltaState(sessionId)
+          deltaState.pendingDelta += msg.text
+          if (!deltaState.flushTimer) {
+            deltaState.flushTimer = setTimeout(() => {
+              const text = deltaState.pendingDelta
+              deltaState.pendingDelta = ''
+              deltaState.flushTimer = null
               update((s) => ({ streamingText: s.streamingText + text }))
             }, 50)
           }
@@ -645,7 +688,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       case 'thinking':
         update((s) => {
-          const pendingText = `${s.streamingText}${consumePendingDelta()}`
+          const pendingText = `${s.streamingText}${consumePendingDelta(sessionId)}`
           const base = pendingText.trim()
             ? appendAssistantTextMessage(s.messages, pendingText, Date.now())
             : s.messages
@@ -759,7 +802,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         const session = get().sessions[sessionId]
         if (!session) break
         const wasAgentRunning = session.chatState !== 'idle'
-        const text = `${session.streamingText}${consumePendingDelta()}`
+        const text = `${session.streamingText}${consumePendingDelta(sessionId)}`
         let completionMessages = session.messages
         if (text.trim()) {
           completionMessages = appendAssistantTextMessage(session.messages, text, Date.now())
@@ -795,7 +838,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       case 'error':
         update((s) => {
-          const pendingText = `${s.streamingText}${consumePendingDelta()}`
+          const pendingText = `${s.streamingText}${consumePendingDelta(sessionId)}`
           let newMessages = s.messages
           if (pendingText.trim()) {
             newMessages = appendAssistantTextMessage(newMessages, pendingText, Date.now())

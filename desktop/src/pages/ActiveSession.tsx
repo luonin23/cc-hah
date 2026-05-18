@@ -208,6 +208,7 @@ export function ActiveSession() {
   const trackedTaskSessionId = useCLITaskStore((s) => s.sessionId)
   const hasIncompleteTasks = useCLITaskStore((s) => s.tasks.some((task) => task.status !== 'completed'))
   const chatState = sessionState?.chatState ?? 'idle'
+  const connectionState = sessionState?.connectionState ?? 'disconnected'
   const tokenUsage = sessionState?.tokenUsage ?? { input_tokens: 0, output_tokens: 0 }
 
   const session = sessions.find((s) => s.id === activeTabId)
@@ -402,6 +403,24 @@ export function ActiveSession() {
                         <>
                           <span className="text-[var(--color-outline)]">·</span>
                           <span>{t('session.messages', { count: session.messageCount })}</span>
+                        </>
+                      )}
+                      {connectionState === 'disconnected' && (
+                        <>
+                          <span className="shrink-0 text-[var(--color-outline)]">·</span>
+                          <span className="text-[var(--color-error)]">{t('session.disconnected')}</span>
+                        </>
+                      )}
+                      {connectionState === 'reconnecting' && (
+                        <>
+                          <span className="shrink-0 text-[var(--color-outline)]">·</span>
+                          <span className="text-[var(--color-warning)]">{t('session.reconnecting')}</span>
+                        </>
+                      )}
+                      {connectionState === 'connecting' && (
+                        <>
+                          <span className="shrink-0 text-[var(--color-outline)]">·</span>
+                          <span className="text-[var(--color-warning)]">{t('session.connecting')}</span>
                         </>
                       )}
                     </div>

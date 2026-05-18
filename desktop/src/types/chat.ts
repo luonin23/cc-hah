@@ -24,6 +24,7 @@ export type ClientMessage =
   | ({ type: 'set_runtime_config' } & RuntimeSelection)
   | { type: 'stop_generation' }
   | { type: 'ping' }
+  | { type: 'client_pong' }
 
 export type AttachmentRef = {
   type: 'file' | 'image'
@@ -76,6 +77,7 @@ export type ServerMessage =
   | { type: 'error'; message: string; code: string; retryable?: boolean }
   | { type: 'system_notification'; subtype: string; message?: string; data?: unknown }
   | { type: 'pong' }
+  | { type: 'server_ping' }
   | { type: 'team_update'; teamName: string; members: TeamMemberStatus[] }
   | { type: 'team_created'; teamName: string }
   | { type: 'team_deleted'; teamName: string }
