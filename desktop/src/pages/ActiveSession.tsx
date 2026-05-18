@@ -381,8 +381,36 @@ export function ActiveSession() {
                           : 'flex items-center gap-2 text-[10px] text-outline font-medium mt-1'
                       }
                     >
+                      {/* Connection status indicator - always visible */}
+                      <span
+                        className="group relative flex shrink-0 items-center"
+                        title={
+                          connectionState === 'connected' ? 'Connected' :
+                          connectionState === 'connecting' ? 'Connecting...' :
+                          connectionState === 'reconnecting' ? 'Reconnecting...' :
+                          'Disconnected'
+                        }
+                      >
+                        <span className={`w-2 h-2 rounded-full transition-colors ${
+                          connectionState === 'connected' ? 'bg-[var(--color-success)]' :
+                          connectionState === 'connecting' ? 'bg-[var(--color-warning)] animate-pulse' :
+                          connectionState === 'reconnecting' ? 'bg-[var(--color-warning)] animate-pulse' :
+                          'bg-[var(--color-error)]'
+                        }`} />
+                        {connectionState !== 'connected' && (
+                          <span className={`ml-1.5 text-[10px] font-medium ${
+                            connectionState === 'disconnected' ? 'text-[var(--color-error)]' :
+                            'text-[var(--color-warning)]'
+                          }`}>
+                            {connectionState === 'disconnected' ? t('session.disconnected') :
+                             connectionState === 'reconnecting' ? t('session.reconnecting') :
+                             t('session.connecting')}
+                          </span>
+                        )}
+                      </span>
                       {isActive && (
                         <span className="flex shrink-0 items-center gap-1">
+                          <span className="text-[var(--color-outline)]">·</span>
                           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] animate-pulse-dot" />
                           {t('session.active')}
                         </span>
@@ -403,24 +431,6 @@ export function ActiveSession() {
                         <>
                           <span className="text-[var(--color-outline)]">·</span>
                           <span>{t('session.messages', { count: session.messageCount })}</span>
-                        </>
-                      )}
-                      {connectionState === 'disconnected' && (
-                        <>
-                          <span className="shrink-0 text-[var(--color-outline)]">·</span>
-                          <span className="text-[var(--color-error)]">{t('session.disconnected')}</span>
-                        </>
-                      )}
-                      {connectionState === 'reconnecting' && (
-                        <>
-                          <span className="shrink-0 text-[var(--color-outline)]">·</span>
-                          <span className="text-[var(--color-warning)]">{t('session.reconnecting')}</span>
-                        </>
-                      )}
-                      {connectionState === 'connecting' && (
-                        <>
-                          <span className="shrink-0 text-[var(--color-outline)]">·</span>
-                          <span className="text-[var(--color-warning)]">{t('session.connecting')}</span>
                         </>
                       )}
                     </div>
