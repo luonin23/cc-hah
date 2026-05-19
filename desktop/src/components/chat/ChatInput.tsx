@@ -611,7 +611,7 @@ export function ChatInput({ variant = 'default', compact = false }: ChatInputPro
     <div
       className={
         isHeroComposer
-          ? 'bg-[var(--color-surface)] px-8 pb-4'
+          ? 'bg-[var(--color-surface)] px-4 pb-4 sm:px-8'
           : compact
             ? 'border-t border-[var(--color-border)]/70 bg-[var(--color-surface)] px-3 py-3'
             : 'bg-[var(--color-surface)] px-4 py-4'
@@ -620,10 +620,10 @@ export function ChatInput({ variant = 'default', compact = false }: ChatInputPro
       <div
         className={
           isHeroComposer
-            ? 'mx-auto flex w-full max-w-3xl flex-col gap-2'
+            ? 'mx-auto flex w-full max-w-3xl flex-col gap-2 px-2 sm:px-0'
             : compact
               ? 'mx-auto max-w-full'
-              : 'mx-auto max-w-[860px]'
+              : 'mx-auto max-w-[860px] px-2 sm:px-0'
         }
       >
         <div

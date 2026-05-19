@@ -128,7 +128,7 @@ export default function SessionControls() {
 
       {/* ─── Main Content Area (blurred / dimmed behind overlays) ── */}
       <main className="md:ml-[280px] pt-12 pb-8 min-h-screen blur-[2px] opacity-60">
-        <div className="max-w-4xl mx-auto px-8 py-12">
+        <div className="max-w-4xl mx-auto px-4 py-8 sm:px-8 sm:py-12">
           <div className="grid grid-cols-12 gap-6">
             {/* Main Thread */}
             <div className="col-span-8 space-y-8">

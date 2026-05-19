@@ -85,7 +85,7 @@ export function ScheduledTasksEmpty() {
             <div className="relative group">
               {/* Architectural Background Detail */}
               <div className="absolute -inset-4 bg-[#F4F4F0] rounded-[32px] -z-10 transition-all"></div>
-              <div className="flex flex-col items-center py-20 px-8">
+              <div className="flex flex-col items-center py-10 px-4 sm:py-20 sm:px-8">
                 <div className="w-32 h-32 rounded-full bg-[#E9E8E4] flex items-center justify-center mb-10 shadow-sm">
                   <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center border border-[#DAC1BA]/10">
                     <span

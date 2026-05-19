@@ -449,7 +449,7 @@ export function MessageList({ sessionId, compact = false }: MessageListProps = {
     <div
       ref={scrollContainerRef}
       onScroll={updateAutoScrollState}
-      className={`flex-1 overflow-y-auto ${compact ? 'px-3 py-3 pb-5' : 'px-4 py-4'}`}
+      className={`flex-1 overflow-y-auto ${compact ? 'px-3 py-3 pb-5' : 'px-3 py-3 sm:px-4 sm:py-4'}`}
     >
       <div className={compact ? 'mx-auto max-w-full' : 'mx-auto max-w-[860px]'}>
         {renderItems.map((item, index) => {

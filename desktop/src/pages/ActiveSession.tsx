@@ -286,7 +286,7 @@ export function ActiveSession() {
         >
           {isMemberSession && (
             <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface-container)]">
-              <div className="mx-auto max-w-[860px] flex items-center justify-between gap-4 px-8 py-2">
+              <div className="mx-auto max-w-[860px] flex items-center justify-between gap-4 px-4 py-2 sm:px-8">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
                     {memberInfo?.status === 'running' && (
@@ -361,7 +361,7 @@ export function ActiveSession() {
                   className={
                     showWorkspacePanel
                       ? 'flex w-full items-center border-b border-[var(--color-border)]/70 px-4 py-3'
-                      : 'mx-auto flex w-full max-w-[860px] items-center border-b border-outline-variant/10 px-8 py-3'
+                      : 'mx-auto flex w-full max-w-[860px] items-center border-b border-outline-variant/10 px-4 py-3 sm:px-8'
                   }
                 >
                   <div className="min-w-0 flex-1">

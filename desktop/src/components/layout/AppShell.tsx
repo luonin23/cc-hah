@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Sidebar } from './Sidebar'
 import { ContentRouter } from './ContentRouter'
 import { ToastContainer } from '../shared/Toast'
@@ -16,9 +16,20 @@ import { useTranslation } from '../../i18n'
 export function AppShell() {
   const fetchSettings = useSettingsStore((s) => s.fetchAll)
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const [ready, setReady] = useState(false)
   const [startupError, setStartupError] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const t = useTranslation()
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -77,6 +88,12 @@ export function AppShell() {
 
   useKeyboardShortcuts()
 
+  const handleOverlayClick = useCallback(() => {
+    if (isMobile && sidebarOpen) {
+      toggleSidebar()
+    }
+  }, [isMobile, sidebarOpen, toggleSidebar])
+
   if (startupError) {
     return <StartupErrorView error={startupError} />
   }
@@ -91,6 +108,15 @@ export function AppShell() {
 
   return (
     <div className="h-screen flex overflow-hidden bg-[var(--color-surface)]">
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 z-[99] bg-black/40"
+          onClick={handleOverlayClick}
+          aria-hidden="true"
+        />
+      )}
+
       <div
         data-testid="sidebar-shell"
         data-state={sidebarOpen ? 'open' : 'closed'}
@@ -98,11 +124,33 @@ export function AppShell() {
       >
         <Sidebar />
       </div>
+
       <main
         id="content-area"
         data-sidebar-state={sidebarOpen ? 'open' : 'closed'}
         className="min-w-0 flex-1 flex flex-col overflow-hidden"
       >
+        {/* Mobile header with menu button */}
+        {isMobile && (
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-container)] shrink-0">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="flex items-center justify-center h-9 w-9 rounded-full text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]"
+              aria-label={sidebarOpen ? t('sidebar.collapse') : t('sidebar.expand')}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+              Claude Code Haha
+            </span>
+          </div>
+        )}
+
         <TabBar />
         <ContentRouter />
       </main>

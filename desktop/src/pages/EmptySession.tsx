@@ -536,7 +536,7 @@ export function EmptySession() {
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-[var(--color-surface)]">
-      <div className="flex flex-1 flex-col items-center justify-center p-8 pb-32 overflow-y-auto">
+      <div className="flex flex-1 flex-col items-center justify-center p-4 pb-32 sm:p-8 overflow-y-auto">
         <div className="flex max-w-md flex-col items-center text-center">
           <img src="/app-icon.png" alt="Claude Code Haha" className="mb-6 h-24 w-24" />
           <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-[var(--color-text-primary)]" style={{ fontFamily: 'var(--font-headline)' }}>
@@ -585,7 +585,7 @@ export function EmptySession() {
         )}
       </div>
 
-      <div className="absolute bottom-4 left-0 right-0 flex justify-center px-8">
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center px-4 sm:px-8">
         <div className="flex w-full max-w-3xl flex-col gap-2">
           <div
             className="glass-panel relative flex flex-col gap-3 rounded-xl p-4"

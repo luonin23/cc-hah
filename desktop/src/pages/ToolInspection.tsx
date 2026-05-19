@@ -13,7 +13,7 @@ export function ToolInspection() {
       <div className="h-px w-full bg-[var(--color-surface-container)]" />
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto p-8 max-w-6xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-6">
           {/* ── Title row + action buttons ─────────────────── */}
           <div className="flex items-start justify-between">
